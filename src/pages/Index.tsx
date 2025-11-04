@@ -10,6 +10,9 @@ const Index = () => {
   const [prompt, setPrompt] = useState('');
   const [generatedImage, setGeneratedImage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [analyzedDescription, setAnalyzedDescription] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const galleryImages = [
     {
@@ -51,6 +54,32 @@ const Index = () => {
       description: 'Сохраняй и делись своими шедеврами'
     }
   ];
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!uploadedImage) return;
+    setIsAnalyzing(true);
+    setTimeout(() => {
+      const descriptions = [
+        'Яркий мультяшный персонаж с большими глазами на градиентном фоне от фиолетового к оранжевому',
+        'Магический пейзаж с парящими островами, фиолетово-синее небо, сказочная атмосфера',
+        'Абстрактный геометрический дизайн персонажа, яркие оранжевые и розовые цвета, минимализм'
+      ];
+      setAnalyzedDescription(descriptions[Math.floor(Math.random() * descriptions.length)]);
+      setPrompt(descriptions[Math.floor(Math.random() * descriptions.length)]);
+      setIsAnalyzing(false);
+    }, 2000);
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -188,68 +217,133 @@ const Index = () => {
 
         {activeSection === 'generator' && (
           <div className="container mx-auto px-6 py-16 animate-fade-in">
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-5xl mx-auto">
               <h2 className="text-5xl font-bold mb-4 text-center bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 AI Генератор изображений
               </h2>
               <p className="text-center text-gray-600 mb-12 text-lg">
-                Опиши что хочешь увидеть, и нейросеть создаст для тебя уникальное изображение
+                Загрузи картинку → AI опишет её → создай новое изображение
               </p>
-              
-              <Card className="border-2 border-purple-100 p-8">
-                <CardContent className="space-y-6 p-0">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Твой промпт</label>
-                    <Textarea 
-                      placeholder="Например: космический кот в стиле киберпанк, неоновые цвета, детальная прорисовка..."
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      className="min-h-32 resize-none"
-                    />
-                  </div>
-                  
-                  <Button 
-                    onClick={handleGenerate}
-                    disabled={isGenerating || !prompt.trim()}
-                    className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg py-6"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <Icon name="Loader2" size={20} className="mr-2 animate-spin" />
-                        Генерирую магию...
-                      </>
-                    ) : (
-                      <>
-                        <Icon name="Sparkles" size={20} className="mr-2" />
-                        Создать изображение
-                      </>
-                    )}
-                  </Button>
 
-                  {generatedImage && (
-                    <div className="animate-scale-in">
-                      <h3 className="text-lg font-semibold mb-3">Результат:</h3>
-                      <div className="relative rounded-xl overflow-hidden border-2 border-purple-200">
-                        <img 
-                          src={generatedImage} 
-                          alt="Generated" 
-                          className="w-full"
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card className="border-2 border-purple-100 p-6">
+                  <CardContent className="space-y-4 p-0">
+                    <h3 className="text-xl font-bold">Шаг 1: Загрузи картинку</h3>
+                    
+                    {!uploadedImage ? (
+                      <label className="border-2 border-dashed border-purple-300 rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer block">
+                        <Icon name="Upload" size={40} className="mx-auto mb-3 text-primary" />
+                        <p className="text-gray-600 mb-2">Загрузи изображение</p>
+                        <p className="text-sm text-gray-400">JPG, PNG до 10MB</p>
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={handleImageUpload}
                         />
-                      </div>
-                      <div className="flex gap-3 mt-4">
-                        <Button variant="outline" className="flex-1">
-                          <Icon name="Download" size={18} className="mr-2" />
-                          Скачать
+                      </label>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="relative rounded-xl overflow-hidden border-2 border-purple-200">
+                          <img src={uploadedImage} alt="Uploaded" className="w-full" />
+                          <button
+                            onClick={() => {
+                              setUploadedImage(null);
+                              setAnalyzedDescription('');
+                              setPrompt('');
+                            }}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg hover:bg-red-600"
+                          >
+                            <Icon name="X" size={16} />
+                          </button>
+                        </div>
+
+                        <Button 
+                          onClick={handleAnalyzeImage}
+                          disabled={isAnalyzing}
+                          className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"
+                        >
+                          {isAnalyzing ? (
+                            <>
+                              <Icon name="Loader2" size={18} className="mr-2 animate-spin" />
+                              Анализирую...
+                            </>
+                          ) : (
+                            <>
+                              <Icon name="Eye" size={18} className="mr-2" />
+                              Распознать изображение
+                            </>
+                          )}
                         </Button>
-                        <Button variant="outline" className="flex-1">
-                          <Icon name="Share2" size={18} className="mr-2" />
-                          Поделиться
-                        </Button>
+
+                        {analyzedDescription && (
+                          <div className="bg-purple-50 p-4 rounded-lg animate-scale-in">
+                            <p className="text-sm font-medium mb-1 text-primary">AI видит:</p>
+                            <p className="text-gray-700">{analyzedDescription}</p>
+                          </div>
+                        )}
                       </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 border-purple-100 p-6">
+                  <CardContent className="space-y-4 p-0">
+                    <h3 className="text-xl font-bold">Шаг 2: Создай новое</h3>
+                    
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Промпт для генерации</label>
+                      <Textarea 
+                        placeholder="Опиши что хочешь создать или отредактируй описание выше..."
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        className="min-h-32 resize-none"
+                      />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                    
+                    <Button 
+                      onClick={handleGenerate}
+                      disabled={isGenerating || !prompt.trim()}
+                      className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg py-6"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Icon name="Loader2" size={20} className="mr-2 animate-spin" />
+                          Генерирую магию...
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="Sparkles" size={20} className="mr-2" />
+                          Создать изображение
+                        </>
+                      )}
+                    </Button>
+
+                    {generatedImage && (
+                      <div className="animate-scale-in space-y-3">
+                        <h4 className="font-semibold">Результат:</h4>
+                        <div className="relative rounded-xl overflow-hidden border-2 border-purple-200">
+                          <img 
+                            src={generatedImage} 
+                            alt="Generated" 
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="flex gap-3">
+                          <Button variant="outline" className="flex-1">
+                            <Icon name="Download" size={16} className="mr-2" />
+                            Скачать
+                          </Button>
+                          <Button variant="outline" className="flex-1">
+                            <Icon name="Share2" size={16} className="mr-2" />
+                            Поделиться
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         )}
